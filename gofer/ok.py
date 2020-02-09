@@ -10,6 +10,8 @@ import string
 from contextlib import redirect_stderr, redirect_stdout
 from jinja2 import Template
 from textwrap import dedent
+import asyncio
+import requests
 
 from .notebook import execute_notebook, _global_anywhere
 from .utils import hide_outputs
@@ -275,6 +277,26 @@ def grade_notebook(notebook_path, tests_glob=None):
     return score
 
 
+# # Need to send:
+# timestamp
+# question
+# answer - whole global env
+# test case results
+# assignment number
+# section
+async def _send_telemetry(question, answer, results, assignment_path):
+    params = {
+        "question": question,
+        "answer": answer,
+        "results": results,
+        "assignment_path": assignment_path
+    }
+    response = requests.post("URL HERE", json=params)
+    assert response.status == 200, "failed to send telemetry"
+    assert reponse.text == "SOME RESPONSE", "failed to send telemetry"
+
+
+
 def check(test_file_path, global_env=None):
     """
     check global_env against given test_file in oktest format
@@ -296,4 +318,14 @@ def check(test_file_path, global_env=None):
         # code. If some other method is calling it, it should also use the
         # inspect trick to pass in its parents' global env.
         global_env = inspect.currentframe().f_back.f_globals
-    return tests.run(global_env, include_grade=False)
+    test_result = tests.run(global_env, include_grade=False)
+
+    # send telem request
+    asyncio.run(_send_telemetry(
+        test_result.tests[0].name
+        global_env,
+        test_result.grade,
+        os.getcwd()
+    ))
+    
+    return test_result
