@@ -12,6 +12,7 @@ from jinja2 import Template
 from textwrap import dedent
 import asyncio
 import requests
+import time
 
 from .notebook import execute_notebook, _global_anywhere
 from .utils import hide_outputs
@@ -284,9 +285,10 @@ def grade_notebook(notebook_path, tests_glob=None):
 # test case results
 # assignment number
 # section
-async def _send_telemetry(question, answer, results, assignment_path):
+async def _send_telemetry(question, timestamp, answer, results, assignment_path):
     params = {
         "question": question,
+        "timestamp": timestamp,
         "answer": answer,
         "results": results,
         "assignment_path": assignment_path
@@ -319,10 +321,12 @@ def check(test_file_path, global_env=None):
         # inspect trick to pass in its parents' global env.
         global_env = inspect.currentframe().f_back.f_globals
     test_result = tests.run(global_env, include_grade=False)
-
+    time = time.time()
+    
     # send telem request
     asyncio.run(_send_telemetry(
-        test_result.tests[0].name
+        test_result.tests[0].name,
+        time,
         global_env,
         test_result.grade,
         os.getcwd()
