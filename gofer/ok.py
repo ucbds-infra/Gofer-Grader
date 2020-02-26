@@ -21,7 +21,6 @@ from pygments.lexers import PythonConsoleLexer
 from pygments.formatters import HtmlFormatter
 
 
-
 def run_doctest(name, doctest_string, global_environment):
     """
     Run a single test with given global_environment.
@@ -54,6 +53,7 @@ def run_doctest(name, doctest_string, global_environment):
         return (True, '')
     else:
         return False, runresults.getvalue()
+
 
 class OKTest:
     """
@@ -188,7 +188,6 @@ class OKTestsResult:
     {% endif %}
     """)
 
-
     def __init__(self, grade, paths, tests, passed_tests, failed_tests, include_grade=True):
         self.grade = grade
         self.paths = paths
@@ -278,14 +277,13 @@ def grade_notebook(notebook_path, tests_glob=None):
     return score
 
 
-# # Need to send:
-# timestamp
-# question
-# answer - whole global env
-# test case results
-# assignment number
-# section
-async def _send_telemetry(question, timestamp, answer, results, assignment_path):
+async def send_telemetry(question, timestamp, answer, results, assignment_path, retries=None):
+    """
+    Asynchronously sends telemetry data to the specified server
+
+    Items being sent as of now are: timestampe, question itself, entire global env (as answer),
+    test case results, assignment number, and section.
+    """
     params = {
         "question": question,
         "timestamp": timestamp,
@@ -293,10 +291,13 @@ async def _send_telemetry(question, timestamp, answer, results, assignment_path)
         "results": results,
         "assignment_path": assignment_path
     }
-    response = requests.post("URL HERE", json=params)
-    assert response.status == 200, "failed to send telemetry"
-    assert reponse.text == "SOME RESPONSE", "failed to send telemetry"
+    request_url = "http://192.168.1.4:5555"  # TODO: Change this to actual endpoint later
 
+    json_params = json.dumps(params)
+    response = requests.post(request_url, json=json_params)
+    if not response.ok and retries:
+        return await send_telemetry(question, timestamp, answer, results, assignment_path, retries - 1)
+    return response.text
 
 
 def check(test_file_path, global_env=None):
@@ -321,15 +322,16 @@ def check(test_file_path, global_env=None):
         # inspect trick to pass in its parents' global env.
         global_env = inspect.currentframe().f_back.f_globals
     test_result = tests.run(global_env, include_grade=False)
-    time = time.time()
+    timestamp = time.time()
     
     # send telem request
-    asyncio.run(_send_telemetry(
+    asyncio.run(send_telemetry(
         test_result.tests[0].name,
-        time,
+        timestamp,
         global_env,
         test_result.grade,
-        os.getcwd()
+        os.getcwd(),
+        3
     ))
     
     return test_result
