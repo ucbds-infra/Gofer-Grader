@@ -285,13 +285,13 @@ def grade_notebook(notebook_path, tests_glob=None):
 # test case results
 # assignment number
 # section
-async def _send_telemetry(question, timestamp, answer, results, assignment_path):
+async def _send_telemetry(question, timestamp, answer, results, assignment, section):
     params = {
         "question": question,
         "timestamp": timestamp,
         "answer": answer,
         "results": results,
-        "assignment_path": assignment_path
+        "assignment": assignment
     }
     response = requests.post("URL HERE", json=params)
     assert response.status == 200, "failed to send telemetry"
@@ -312,6 +312,8 @@ def check(test_file_path, global_env=None):
 
     Returns a TestResult object.
     """
+    #print(inspect.getmembers(global_env))
+    # TODO : there is one notebook file in a given directory - > os.getcwd() is current working directory of pynb -> async function to grab file 
     tests = OKTests([test_file_path])
 
     if global_env is None:
@@ -323,13 +325,25 @@ def check(test_file_path, global_env=None):
     test_result = tests.run(global_env, include_grade=False)
     time = time.time()
     
-    # send telem request
+    if file_ext.endswith("ipynb"):
+        pynb_path = glob.glob(test_file_path)[0]
+    else:
+        pynb_path = glob.glob("/".join(str.split(test_file_path,"/")[:-1])+"/*.ipynb")[0] # assuming 1 pynb always in dir
+    
+    # find request for userID -> tornado call in gofer service
+    #gets the relevant metadata if its a pynb?
+    with open(pynb_path) as f:
+        nb = json.load(f)
+        # send telem request
     asyncio.run(_send_telemetry(
-        test_result.tests[0].name,
+        test_result.tests[0].name, # TODO: question?
         time,
         global_env,
         test_result.grade,
-        os.getcwd()
+        nb["metadata"]["assignment"],
+        nb["metadata"]["section"]
     ))
+    
+
     
     return test_result
