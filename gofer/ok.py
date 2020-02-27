@@ -21,7 +21,6 @@ from pygments.lexers import PythonConsoleLexer
 from pygments.formatters import HtmlFormatter
 
 
-
 def run_doctest(name, doctest_string, global_environment):
     """
     Run a single test with given global_environment.
@@ -54,6 +53,7 @@ def run_doctest(name, doctest_string, global_environment):
         return (True, '')
     else:
         return False, runresults.getvalue()
+
 
 class OKTest:
     """
@@ -188,7 +188,6 @@ class OKTestsResult:
     {% endif %}
     """)
 
-
     def __init__(self, grade, paths, tests, passed_tests, failed_tests, include_grade=True):
         self.grade = grade
         self.paths = paths
@@ -278,6 +277,7 @@ def grade_notebook(notebook_path, tests_glob=None):
     return score
 
 
+<<<<<<< HEAD
 # # Need to send:
 # timestamp
 # question
@@ -285,18 +285,28 @@ def grade_notebook(notebook_path, tests_glob=None):
 # test case results
 # assignment number
 # section
-async def _send_telemetry(question, timestamp, answer, results, assignment, section):
+async def _send_telemetry(question, timestamp, answer, results, assignment, section, retries=None):
+    """
+    Asynchronously sends telemetry data to the specified server
+
+    Items being sent as of now are: timestampe, question itself, entire global env (as answer),
+    test case results, assignment number, and section.
+    """
     params = {
         "question": question,
         "timestamp": timestamp,
         "answer": answer,
         "results": results,
-        "assignment": assignment
+        "assignment": assignment,
+        "section": section
     }
-    response = requests.post("URL HERE", json=params)
-    assert response.status == 200, "failed to send telemetry"
-    assert reponse.text == "SOME RESPONSE", "failed to send telemetry"
+    request_url = "http://192.168.1.4:5555"  # TODO: Change this to actual endpoint later
 
+    json_params = json.dumps(params)
+    response = requests.post(request_url, json=json_params)
+    if not response.ok and retries:
+        return await send_telemetry(question, timestamp, answer, results, assignment_path, retries - 1)
+    return response.text
 
 
 def check(test_file_path, global_env=None):
@@ -323,8 +333,9 @@ def check(test_file_path, global_env=None):
         # inspect trick to pass in its parents' global env.
         global_env = inspect.currentframe().f_back.f_globals
     test_result = tests.run(global_env, include_grade=False)
-    time = time.time()
+    timestamp = time.time()
     
+<<<<<<< HEAD
     if file_ext.endswith("ipynb"):
         pynb_path = glob.glob(test_file_path)[0]
     else:
@@ -343,7 +354,5 @@ def check(test_file_path, global_env=None):
         nb["metadata"]["assignment"],
         nb["metadata"]["section"]
     ))
-    
-
     
     return test_result
