@@ -277,19 +277,11 @@ def grade_notebook(notebook_path, tests_glob=None):
     return score
 
 
-<<<<<<< HEAD
-# # Need to send:
-# timestamp
-# question
-# answer - whole global env
-# test case results
-# assignment number
-# section
-async def _send_telemetry(question, timestamp, answer, results, assignment, section, retries=None):
+async def send_telemetry(question, timestamp, answer, results, assignment, section, retries=None):
     """
     Asynchronously sends telemetry data to the specified server
 
-    Items being sent as of now are: timestampe, question itself, entire global env (as answer),
+    Items being sent as of now are: timestamp, question itself, entire global env (as answer),
     test case results, assignment number, and section.
     """
     params = {
@@ -305,7 +297,7 @@ async def _send_telemetry(question, timestamp, answer, results, assignment, sect
     json_params = json.dumps(params)
     response = requests.post(request_url, json=json_params)
     if not response.ok and retries:
-        return await send_telemetry(question, timestamp, answer, results, assignment_path, retries - 1)
+        return await send_telemetry(question, timestamp, answer, results, assignment, section, retries - 1)
     return response.text
 
 
@@ -322,8 +314,8 @@ def check(test_file_path, global_env=None):
 
     Returns a TestResult object.
     """
-    #print(inspect.getmembers(global_env))
-    # TODO : there is one notebook file in a given directory - > os.getcwd() is current working directory of pynb -> async function to grab file 
+    #  TODO : there is one notebook file in a given directory - > os.getcwd() is
+    #   current working directory of pynb -> async function to grab file
     tests = OKTests([test_file_path])
 
     if global_env is None:
@@ -334,25 +326,27 @@ def check(test_file_path, global_env=None):
         global_env = inspect.currentframe().f_back.f_globals
     test_result = tests.run(global_env, include_grade=False)
     timestamp = time.time()
-    
-<<<<<<< HEAD
-    if file_ext.endswith("ipynb"):
+
+    if test_file_path.endswith("ipynb"):
         pynb_path = glob.glob(test_file_path)[0]
     else:
-        pynb_path = glob.glob("/".join(str.split(test_file_path,"/")[:-1])+"/*.ipynb")[0] # assuming 1 pynb always in dir
+        pynb_path = glob.glob("/".join(str.split(test_file_path,"/")[:-1])+"/*.ipynb")[0]  # assumes pynb always in dir
     
     # find request for userID -> tornado call in gofer service
     #gets the relevant metadata if its a pynb?
+
     with open(pynb_path) as f:
         nb = json.load(f)
-        # send telem request
-    asyncio.run(_send_telemetry(
+
+    # Send telemetry request
+    asyncio.run(send_telemetry(
         test_result.tests[0].name, # TODO: question?
-        time,
+        timestamp,
         global_env,
         test_result.grade,
         nb["metadata"]["assignment"],
-        nb["metadata"]["section"]
+        nb["metadata"]["section"],
+        3
     ))
     
     return test_result
