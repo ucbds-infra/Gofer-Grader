@@ -20,6 +20,8 @@ from pygments import highlight
 from pygments.lexers import PythonConsoleLexer
 from pygments.formatters import HtmlFormatter
 
+from datascience import Table  # Needed for telemetry
+
 
 def run_doctest(name, doctest_string, global_environment):
     """
@@ -294,7 +296,10 @@ async def send_telemetry(question, timestamp, answer, results, assignment, secti
     }
     request_url = "http://192.168.1.4:5555"  # TODO: Change this to actual endpoint later
 
-    json_params = json.dumps(params)
+    json_params = json.dumps(params,
+                             default=lambda o: o.to_df().to_dict(orient="list") if type(o) == Table
+                             else "<not serializable>")
+
     response = requests.post(request_url, json=json_params)
     if not response.ok and retries:
         return await send_telemetry(question, timestamp, answer, results, assignment, section, retries - 1)
@@ -333,14 +338,14 @@ def check(test_file_path, global_env=None):
         pynb_path = glob.glob("/".join(str.split(test_file_path,"/")[:-1])+"/*.ipynb")[0]  # assumes pynb always in dir
     
     # find request for userID -> tornado call in gofer service
-    #gets the relevant metadata if its a pynb?
+    # gets the relevant metadata if its a pynb?
 
     with open(pynb_path) as f:
         nb = json.load(f)
 
     # Send telemetry request
     asyncio.run(send_telemetry(
-        test_result.tests[0].name, # TODO: question?
+        test_result.tests[0].name,  # TODO: question?
         timestamp,
         global_env,
         test_result.grade,
