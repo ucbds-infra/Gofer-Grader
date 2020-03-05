@@ -279,7 +279,7 @@ def grade_notebook(notebook_path, tests_glob=None):
     return score
 
 
-async def send_telemetry(question, timestamp, answer, results, assignment, section, retries=None):
+async def send_telemetry(question, answer, results, assignment, section, retries=None):
     """
     Asynchronously sends telemetry data to the specified server
 
@@ -288,7 +288,6 @@ async def send_telemetry(question, timestamp, answer, results, assignment, secti
     """
     params = {
         "question": question,
-        "timestamp": timestamp,
         "answer": answer,
         "results": results,
         "assignment": assignment,
@@ -330,7 +329,6 @@ def check(test_file_path, global_env=None):
         # inspect trick to pass in its parents' global env.
         global_env = inspect.currentframe().f_back.f_globals
     test_result = tests.run(global_env, include_grade=False)
-    timestamp = time.time()
 
     if test_file_path.endswith("ipynb"):
         pynb_path = glob.glob(test_file_path)[0]
@@ -346,7 +344,6 @@ def check(test_file_path, global_env=None):
     # Send telemetry request
     asyncio.run(send_telemetry(
         test_result.tests[0].name,  # TODO: question?
-        timestamp,
         global_env,
         test_result.grade,
         nb["metadata"]["assignment"],
