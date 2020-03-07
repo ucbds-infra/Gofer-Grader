@@ -293,15 +293,18 @@ async def send_telemetry(question, answer, results, assignment, section, retries
         "assignment": assignment,
         "section": section
     }
-    request_url = "http://192.168.1.4:5555"  # TODO: Change this to actual endpoint later
+    request_url = "http://localhost:10101/"  # TODO: Change this to actual endpoint later
 
-    json_params = json.dumps(params,
-                             default=lambda o: o.to_df().to_dict(orient="list") if type(o) == Table
-                             else "<not serializable>")
+    serialize = lambda o: o.to_df().to_dict(orient="list") if type(o) == Table else "<not serializable>"
+#     json_params = {k : serialize(v) if } 
+    json_params = json.loads(json.dumps(params,
+                             default=serialize))
+    
+    print(json_params)
 
     response = requests.post(request_url, json=json_params)
     if not response.ok and retries:
-        return await send_telemetry(question, timestamp, answer, results, assignment, section, retries - 1)
+        return await send_telemetry(question, answer, results, assignment, section, retries - 1)
     return response.text
 
 
@@ -330,10 +333,7 @@ def check(test_file_path, global_env=None):
         global_env = inspect.currentframe().f_back.f_globals
     test_result = tests.run(global_env, include_grade=False)
 
-    if test_file_path.endswith("ipynb"):
-        pynb_path = glob.glob(test_file_path)[0]
-    else:
-        pynb_path = glob.glob("/".join(str.split(test_file_path,"/")[:-1])+"/*.ipynb")[0]  # assumes pynb always in dir
+    pynb_path = glob.glob("*.ipynb")[0]  # assumes pynb always in dir
     
     # find request for userID -> tornado call in gofer service
     # gets the relevant metadata if its a pynb?
@@ -341,10 +341,11 @@ def check(test_file_path, global_env=None):
     with open(pynb_path) as f:
         nb = json.load(f)
 
+    # TODO: pare down global env
     # Send telemetry request
-    asyncio.run(send_telemetry(
-        test_result.tests[0].name,  # TODO: question?
-        global_env,
+    asyncio.ensure_future(send_telemetry(
+        test_result.tests[0].name,
+        global_env["_i"],
         test_result.grade,
         nb["metadata"]["assignment"],
         nb["metadata"]["section"],
