@@ -341,12 +341,26 @@ def check(test_file_path, global_env=None):
     with open(pynb_path) as f:
         nb = json.load(f)
 
+    exclude_last = global_env["_ih"][:-1] # exclude current cell
+    traceback = [s.split("\n") for s in exclude_last]
+    traceback
+    vars = []
+    for cell in traceback:
+        for line in cell:
+            match = re.match(r"^(\w+\.?\w*)\s*=\s*.*$", line)
+            if match:
+                if "." in match[1]:
+                    val = match[1].split(".")[0]
+                else:
+                    val = match[1]
+                vars.append(val)
+
     # TODO: pare down global env
     # Send telemetry request
     asyncio.ensure_future(send_telemetry(
         test_result.tests[0].name,
         global_env["_i"],
-        test_result.grade,
+        vars,
         nb["metadata"]["assignment"],
         nb["metadata"]["section"],
         3
