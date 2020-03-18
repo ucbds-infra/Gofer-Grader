@@ -13,6 +13,7 @@ from textwrap import dedent
 import asyncio
 import requests
 import time
+import re
 
 from .notebook import execute_notebook, _global_anywhere
 from .utils import hide_outputs
@@ -21,6 +22,7 @@ from pygments.lexers import PythonConsoleLexer
 from pygments.formatters import HtmlFormatter
 
 from datascience import Table  # Needed for telemetry
+from numpy import ndarray
 
 
 def run_doctest(name, doctest_string, global_environment):
@@ -278,6 +280,13 @@ def grade_notebook(notebook_path, tests_glob=None):
             print(result)
     return score
 
+def serialize(o):
+    if type(o) == Table:
+        return o.to_df().to_dict(orient="list")
+    elif type(o) == ndarray:
+        return o.tolist()
+    else:
+        return "<not serializable>"
 
 async def send_telemetry(question, answer, results, assignment, section, retries=None):
     """
@@ -295,7 +304,7 @@ async def send_telemetry(question, answer, results, assignment, section, retries
     }
     request_url = "http://localhost:10101/"  # TODO: Change this to actual endpoint later
 
-    serialize = lambda o: o.to_df().to_dict(orient="list") if type(o) == Table else "<not serializable>"
+#     serialize = lambda o: o.to_df().to_dict(orient="list") if type(o) == Table else "<not serializable>"
 #     json_params = {k : serialize(v) if } 
     json_params = json.loads(json.dumps(params,
                              default=serialize))
@@ -343,7 +352,7 @@ def check(test_file_path, global_env=None):
 
     exclude_last = global_env["_ih"][:-1] # exclude current cell
     traceback = [s.split("\n") for s in exclude_last]
-    traceback
+    traceback.reverse()
     vars = []
     for cell in traceback:
         for line in cell:
@@ -353,7 +362,12 @@ def check(test_file_path, global_env=None):
                     val = match[1].split(".")[0]
                 else:
                     val = match[1]
-                vars.append(val)
+                if val not in vars:
+                    vars.append(val)
+        if any([re.match(r"check\(.*\)", l) for l in cell]):
+            break
+                
+    vars = {var : global_env[var] if var in global_env else None for var in vars}
 
     # TODO: pare down global env
     # Send telemetry request
