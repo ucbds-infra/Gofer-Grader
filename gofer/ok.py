@@ -288,7 +288,7 @@ def serialize(o):
     else:
         return "<not serializable>"
 
-async def send_telemetry(question, answer, results, assignment, section, retries=None):
+async def log_check(question, answer, results, assignment, section, retries=None):
     """
     Asynchronously sends telemetry data to the specified server
 
@@ -302,7 +302,9 @@ async def send_telemetry(question, answer, results, assignment, section, retries
         "assignment": assignment,
         "section": section
     }
-    request_url = "http://localhost:10101/"  # TODO: Change this to actual endpoint later
+    request_url = os.environ.get("GOFER_LOGGING_ENDPOINT", None)
+    if request_url is None:
+        return
 
 #     serialize = lambda o: o.to_df().to_dict(orient="list") if type(o) == Table else "<not serializable>"
 #     json_params = {k : serialize(v) if } 
@@ -313,7 +315,7 @@ async def send_telemetry(question, answer, results, assignment, section, retries
 
     response = requests.post(request_url, json=json_params)
     if not response.ok and retries:
-        return await send_telemetry(question, answer, results, assignment, section, retries - 1)
+        return await log_check(question, answer, results, assignment, section, retries - 1)
     return response.text
 
 
@@ -371,7 +373,7 @@ def check(test_file_path, global_env=None):
 
     # TODO: pare down global env
     # Send telemetry request
-    asyncio.ensure_future(send_telemetry(
+    asyncio.ensure_future(log_check(
         test_result.tests[0].name,
         global_env["_i"],
         vars,
