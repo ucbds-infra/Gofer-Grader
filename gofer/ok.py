@@ -372,7 +372,9 @@ def check(test_file_path, global_env=None):
     vars = {var : global_env[var] if var in global_env else None for var in vars}
 
     # TODO: pare down global env
-    # Send telemetry request
+    if 'assignment' not in nb['metadata']:
+        nb['metadata']['assignment'] = nb['metadata']['lab']
+
     asyncio.ensure_future(log_check(
         test_result.tests[0].name,
         global_env["_i"],
