@@ -250,7 +250,6 @@ def grade_notebook(notebook_path, tests_glob=None):
     if tests_glob:
         # unpack list of paths into a single list
         tested_set = list(itertools.chain(*[r.paths for r in test_results]))
-        print(tested_set)
         extra_tests = []
         for t in sorted(tests_glob):
             include = True
