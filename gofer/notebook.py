@@ -133,9 +133,17 @@ def execute_notebook(nb, secret='secret', initial_env=None, ignore_errors=False,
                                     if source_is_str_bool:
                                         code_lines.append('\n')
                         cell_source = isp.transform_cell(''.join(code_lines))
-                        if "import" in global_env:
-                            del global_env["import"]
+                        try:
+                            global_env["temp_import"] = global_env["__builtins__"]["__import__"]
+                            del global_env["__builtins__"]["__import__"]
+                        except KeyError:
+                            pass
                         exec(cell_source, global_env)
+                        try:
+                            global_env["__builtins__"]["__import__"] = global_env["temp_import"]
+                            del global_env["temp_import"]
+                        except KeyError:
+                            pass
                         source += cell_source
                     except:
                         if not ignore_errors:
@@ -154,9 +162,17 @@ def execute_notebook(nb, secret='secret', initial_env=None, ignore_errors=False,
         cleaned_source = compile(tree, filename="nb-ast", mode="exec")
         try:
             with open(os.devnull, 'w') as f, redirect_stdout(f), redirect_stderr(f):
-                if "import" in global_env:
-                    del global_env["import"]
+                try:
+                    global_env["temp_import"] = global_env["__builtins__"]["__import__"]
+                    del global_env["__builtins__"]["__import__"]
+                except KeyError:
+                    pass
                 exec(cleaned_source, global_env)
+                try:
+                    global_env["__builtins__"]["__import__"] = global_env["temp_import"]
+                    del global_env["temp_import"]
+                except KeyError:
+                    pass
         except:
             if not ignore_errors:
                 raise
