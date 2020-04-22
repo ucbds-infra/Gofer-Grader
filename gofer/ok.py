@@ -301,16 +301,13 @@ async def log_check(question, answer, results, assignment, section, retries=None
         "assignment": assignment,
         "section": section
     }
-    request_url = "http://104.197.68.240:10101/"              #os.environ.get("GOFER_LOGGING_ENDPOINT", None)
-    if request_url is None:
-        return
+    request_url = "http://104.197.68.240:10101/"              
+    # os.environ.get("GOFER_LOGGING_ENDPOINT", None)
+    # if request_url is None:
+    #     return
 
-#     serialize = lambda o: o.to_df().to_dict(orient="list") if type(o) == Table else "<not serializable>"
-#     json_params = {k : serialize(v) if } 
     json_params = json.loads(json.dumps(params,
                              default=serialize))
-    
-    print(json_params)
 
     response = requests.post(request_url, json=json_params)
     if not response.ok and retries:
