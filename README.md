@@ -1,7 +1,3 @@
-### YOU ARE EDITING THE `prod` branch!
-
-Do not edit this branch directly. Commit to other branches and then PR into this one when ready to merge to production. **This is the branch installed on the 8X Hub, so do not edit it directly!**
-
 # Gofer Grader
 
 [![CircleCI](https://circleci.com/gh/data-8/Gofer-Grader/tree/master.svg?style=shield)](https://circleci.com/gh/data-8/Gofer-Grader/tree/master)
