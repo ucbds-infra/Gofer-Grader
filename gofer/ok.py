@@ -352,30 +352,21 @@ def check(test_file_path, global_env=None):
 
         exclude_last = global_env["_ih"][:-1] # exclude current cell
         traceback = [s.split("\n") for s in exclude_last]
-        traceback.reverse()
-        vars = []
-        for cell in traceback:
-            for line in cell:
-                match = re.match(r"^(\w+\.?\w*)\s*=\s*.*$", line)
-                if match:
-                    if "." in match[1]:
-                        val = match[1].split(".")[0]
-                    else:
-                        val = match[1]
-                    if val not in vars:
-                        vars.append(val)
+        code = []
+        for cell in traceback[::-1]:
             if any([re.match(r"check\(.*\)", l) for l in cell]):
                 break
+            code.append(*cell)
                     
-        vars = {var : global_env[var] if var in global_env else None for var in vars}
+        # vars = {var : global_env[var] if var in global_env else None for var in vars}
 
         if 'assignment' not in nb['metadata']:
             nb['metadata']['assignment'] = nb['metadata']['lab']
 
         asyncio.ensure_future(log_check(
             test_result.tests[0].name,
-            global_env["_i"],
-            vars,
+            code,
+            {},
             nb["metadata"]["assignment"],
             nb["metadata"]["section"],
             3
