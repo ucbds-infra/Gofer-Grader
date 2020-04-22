@@ -250,7 +250,6 @@ def grade_notebook(notebook_path, tests_glob=None):
     if tests_glob:
         # unpack list of paths into a single list
         tested_set = list(itertools.chain(*[r.paths for r in test_results]))
-        print(tested_set)
         extra_tests = []
         for t in sorted(tests_glob):
             include = True
@@ -302,16 +301,13 @@ async def log_check(question, answer, results, assignment, section, retries=None
         "assignment": assignment,
         "section": section
     }
-    request_url = "http://104.197.68.240:10101/"              #os.environ.get("GOFER_LOGGING_ENDPOINT", None)
-    if request_url is None:
-        return
+    request_url = "http://104.197.68.240:10101/"              
+    # os.environ.get("GOFER_LOGGING_ENDPOINT", None)
+    # if request_url is None:
+    #     return
 
-#     serialize = lambda o: o.to_df().to_dict(orient="list") if type(o) == Table else "<not serializable>"
-#     json_params = {k : serialize(v) if } 
     json_params = json.loads(json.dumps(params,
                              default=serialize))
-    
-    print(json_params)
 
     response = requests.post(request_url, json=json_params)
     if not response.ok and retries:
@@ -344,44 +340,49 @@ def check(test_file_path, global_env=None):
         global_env = inspect.currentframe().f_back.f_globals
     test_result = tests.run(global_env, include_grade=False)
 
-    pynb_path = glob.glob("*.ipynb")[0]  # assumes pynb always in dir
+    # put in try/except so that failure doesn't prevent students from moving on
+    try:
+        pynb_path = glob.glob("*.ipynb")[0]  # assumes pynb always in dir
+        
+        # find request for userID -> tornado call in gofer service
+        # gets the relevant metadata if its a pynb?
+
+        with open(pynb_path) as f:
+            nb = json.load(f)
+
+        exclude_last = global_env["_ih"][:-1] # exclude current cell
+        traceback = [s.split("\n") for s in exclude_last]
+        traceback.reverse()
+        vars = []
+        for cell in traceback:
+            for line in cell:
+                match = re.match(r"^(\w+\.?\w*)\s*=\s*.*$", line)
+                if match:
+                    if "." in match[1]:
+                        val = match[1].split(".")[0]
+                    else:
+                        val = match[1]
+                    if val not in vars:
+                        vars.append(val)
+            if any([re.match(r"check\(.*\)", l) for l in cell]):
+                break
+                    
+        vars = {var : global_env[var] if var in global_env else None for var in vars}
+
+        if 'assignment' not in nb['metadata']:
+            nb['metadata']['assignment'] = nb['metadata']['lab']
+
+        asyncio.ensure_future(log_check(
+            test_result.tests[0].name,
+            global_env["_i"],
+            vars,
+            nb["metadata"]["assignment"],
+            nb["metadata"]["section"],
+            3
+        ))
     
-    # find request for userID -> tornado call in gofer service
-    # gets the relevant metadata if its a pynb?
-
-    with open(pynb_path) as f:
-        nb = json.load(f)
-
-    exclude_last = global_env["_ih"][:-1] # exclude current cell
-    traceback = [s.split("\n") for s in exclude_last]
-    traceback.reverse()
-    vars = []
-    for cell in traceback:
-        for line in cell:
-            match = re.match(r"^(\w+\.?\w*)\s*=\s*.*$", line)
-            if match:
-                if "." in match[1]:
-                    val = match[1].split(".")[0]
-                else:
-                    val = match[1]
-                if val not in vars:
-                    vars.append(val)
-        if any([re.match(r"check\(.*\)", l) for l in cell]):
-            break
-                
-    vars = {var : global_env[var] if var in global_env else None for var in vars}
-
-    # TODO: pare down global env
-    if 'assignment' not in nb['metadata']:
-        nb['metadata']['assignment'] = nb['metadata']['lab']
-
-    asyncio.ensure_future(log_check(
-        test_result.tests[0].name,
-        global_env["_i"],
-        vars,
-        nb["metadata"]["assignment"],
-        nb["metadata"]["section"],
-        3
-    ))
+    except:
+        # ignore failure
+        pass
     
     return test_result
