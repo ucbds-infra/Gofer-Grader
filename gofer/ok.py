@@ -315,6 +315,33 @@ async def log_check(question, answer, results, assignment, section, retries=None
     return response.text
 
 
+def check_all(tests_glob, global_env=None):
+    tests = OKTests(tests_glob)
+
+    if global_env is None:
+        # Get the global env of our callers - one level below us in the stack
+        # The grade method should only be called directly from user / notebook
+        # code. If some other method is calling it, it should also use the
+        # inspect trick to pass in its parents' global env.
+        global_env = inspect.currentframe().f_back.f_globals
+    test_results = tests.run(global_env, include_grade=False)
+
+    # If within an IPython or Jupyter environment, display hints
+    display_defined = False
+    try:
+        __IPYTHON__
+        display_defined = True
+    except NameError:
+        pass
+    for i, result in enumerate(test_results):
+        print("Question {}:".format(i+1),)
+        if display_defined:
+            display(result)
+        else:
+            print(result)
+    return test_results.grade
+
+
 def check(test_file_path, global_env=None):
     """
     check global_env against given test_file in oktest format
