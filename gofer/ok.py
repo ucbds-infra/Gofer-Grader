@@ -356,8 +356,11 @@ def check(test_file_path, global_env=None):
         for cell in traceback[::-1]:
             if any([re.match(r"check\(.*\)", l) for l in cell]):
                 break
+            cell.reverse()
             code.append(*cell)
                     
+        code.reverse()
+        
         # vars = {var : global_env[var] if var in global_env else None for var in vars}
 
         if 'assignment' not in nb['metadata']:
