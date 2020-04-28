@@ -325,7 +325,7 @@ def check_all(tests_glob, global_env=None):
         # inspect trick to pass in its parents' global env.
         global_env = inspect.currentframe().f_back.f_globals
     # test_results = tests.run(global_env, include_grade=False)
-    test_results = [OKTests(test).run(global_env, include_grade=True) for test in tests_glob]
+    test_results = [OKTests([test]).run(global_env, include_grade=True) for test in tests_glob]
 
     # avoid divide by zero error if there are no tests
     score = sum([r.grade for r in test_results])/max(len(test_results), 1)
