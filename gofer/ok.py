@@ -316,7 +316,7 @@ async def log_check(question, answer, results, assignment, section, retries=None
 
 
 def check_all(tests_glob, global_env=None):
-    tests = OKTests(tests_glob)
+    # test_results = [OKTests(test).run(global_env, include_grade=True) for test in tests_glob]
 
     if global_env is None:
         # Get the global env of our callers - one level below us in the stack
@@ -324,7 +324,11 @@ def check_all(tests_glob, global_env=None):
         # code. If some other method is calling it, it should also use the
         # inspect trick to pass in its parents' global env.
         global_env = inspect.currentframe().f_back.f_globals
-    test_results = tests.run(global_env, include_grade=False)
+    # test_results = tests.run(global_env, include_grade=False)
+    test_results = [OKTests(test).run(global_env, include_grade=True) for test in tests_glob]
+
+    # avoid divide by zero error if there are no tests
+    score = sum([r.grade for r in test_results])/max(len(test_results), 1)
 
     # If within an IPython or Jupyter environment, display hints
     display_defined = False
@@ -339,7 +343,7 @@ def check_all(tests_glob, global_env=None):
             display(result)
         else:
             print(result)
-    return test_results.grade
+    return score
 
 
 def check(test_file_path, global_env=None):
