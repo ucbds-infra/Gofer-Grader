@@ -134,9 +134,9 @@ def execute_notebook(nb, secret='secret', initial_env=None, ignore_errors=False,
                                     if source_is_str_bool:
                                         code_lines.append('\n')
                         cell_source = isp.transform_cell(''.join(code_lines))
-                        m = mock.mock_open()
-                        with mock.patch('nbforms', m):
-                            exec(cell_source, global_env)
+                        # m = mock.mock_open()
+                        # with mock.patch('nbforms', m):
+                        exec(cell_source, global_env)
                         source += cell_source
                     except:
                         if not ignore_errors:
@@ -155,9 +155,9 @@ def execute_notebook(nb, secret='secret', initial_env=None, ignore_errors=False,
         cleaned_source = compile(tree, filename="nb-ast", mode="exec")
         try:
             with open(os.devnull, 'w') as f, redirect_stdout(f), redirect_stderr(f):
-                m = mock.mock_open()
-                with mock.patch('nbforms', m):
-                    exec(cleaned_source, global_env)
+                # m = mock.mock_open()
+                # with mock.patch('nbforms', m):
+                exec(cleaned_source, global_env)
         except:
             if not ignore_errors:
                 raise
