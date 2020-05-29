@@ -388,7 +388,7 @@ def check(test_file_path, global_env=None):
             if any([re.match(r"check\(.*\)", l) for l in cell]):
                 break
             cell.reverse()
-            code.append(*cell)
+            code.extend(cell)
                     
         code.reverse()
         
