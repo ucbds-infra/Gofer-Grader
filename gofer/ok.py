@@ -287,17 +287,18 @@ def serialize(o):
     else:
         return "<not serializable>"
 
-async def log_check(question, answer, results, assignment, section, retries=None):
+async def log_check(question, answer, results, correct, assignment, section, retries=None):
     """
     Asynchronously sends telemetry data to the specified server
 
     Items being sent as of now are: timestamp, question itself, entire global env (as answer),
-    test case results, assignment number, and section.
+    test case results, whether the answer passed all tests, assignment number, and section.
     """
     params = {
         "question": question,
         "answer": answer,
         "results": results,
+        "correct": correct,
         "assignment": assignment,
         "section": section
     }
@@ -311,7 +312,7 @@ async def log_check(question, answer, results, assignment, section, retries=None
 
     response = requests.post(request_url, json=json_params)
     if not response.ok and retries:
-        return await log_check(question, answer, results, assignment, section, retries - 1)
+        return await log_check(question, answer, results, correct, assignment, section, retries - 1)
     return response.text
 
 
@@ -401,6 +402,7 @@ def check(test_file_path, global_env=None):
             test_result.tests[0].name,
             code,
             {},
+            test_result.grade == 1.0,
             nb["metadata"]["assignment"],
             nb["metadata"]["section"],
             3
